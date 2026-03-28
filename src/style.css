@@ -1,6 +1,8 @@
 /* 1. Import the Tailwind engine */
 @import "tailwindcss";
 
+/* If you have custom styles, put them below this line */
+
 /* 2. Configure the Hizaki Labs Theme */
 @theme {
   /* Fonts */
