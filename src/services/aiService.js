@@ -26,14 +26,29 @@ async function useGemini(text, tone) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) throw new Error("Gemini API key is missing.");
 
+  // Using the specific model you have access to
+  // For 'preview' models, we often have to use the v1beta endpoint 
+  // but the SDK handles this if we provide the right string.
   const model = genAI.getGenerativeModel({ 
-    model: 'gemini-1.5-flash',
-    systemInstruction: buildSystemPrompt(tone),
+    model: 'gemini-2.5-flash' 
   });
 
-  const result = await model.generateContent(`Original Draft:\n"""\n${text}\n"""`);
-  const response = await result.response;
-  return response.text().trim();
+  const fullPrompt = `${buildSystemPrompt(tone)}\n\nOriginal Draft:\n"""\n${text}\n"""`;
+
+  try {
+    const result = await model.generateContent(fullPrompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    // Failover to Gemini 3 Flash Preview if 2.5 hits a snag
+    if (error.message.includes('404') || error.message.includes('not found')) {
+      const backupModel = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+      const backupResult = await backupModel.generateContent(fullPrompt);
+      const backupResponse = await backupResult.response;
+      return backupResponse.text().trim();
+    }
+    throw error;
+  }
 }
 
 // 4. Engine: Hugging Face (Router API)
